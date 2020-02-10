@@ -14,15 +14,18 @@ class VariationalAutoencoder(tf.keras.models.Model):
             self.encoder = gaussian_encoder(input_shape, enc_spec, latent_dim, L=L)
             self.decoder = bernoulli_decoder(input_shape, dec_spec, latent_dim)
 
+    @tf.function
     def call(self, inputs, training=None, mask=None):
         z, mean_z, log_var_z = self.encoder(inputs, training=training)
 
         # Computing p(x|z) for all L samples of z
-        px_given_z = []
-        for l in range(tf.shape(z)[-1]):
-            px_given_z.append(self.decoder(z[:, :, l], training=training))
+        px_given_z = tf.TensorArray(tf.float32, size=tf.shape(z)[-1])
+        for l in tf.range(z.shape[-1]):
+            mc_sample = self.decoder(z[:, :, l], training=training)
+            px_given_z = px_given_z.write(l, mc_sample)
 
-        px_given_z = tf.stack(px_given_z, axis=-1)
+        px_given_z = px_given_z.stack()
+        px_given_z = tf.transpose(px_given_z, perm=[1, 2, 3, 4, 0])
         return px_given_z, (mean_z, log_var_z)
 
 

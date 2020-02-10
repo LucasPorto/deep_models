@@ -10,11 +10,12 @@ from visualization import visualize_distributions
 # Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes. arXiv 2013."
 # arXiv preprint arXiv:1312.6114 (2013).
 
+
 def train(vae: Model, X, y, epochs=100, batch_size=32):
 
-    opt = tf.keras.optimizers.Adam(lr=1e-4)
+    opt = tf.keras.optimizers.RMSprop()
     avg_bce_loss = AveragedBCE()
-    kld_loss = KLDStandardNormal()
+    kld_loss = KLDStandardNormal(beta=1.0)
 
     n = X.shape[0]
     X = tf.convert_to_tensor(X / 255.0, dtype=tf.float32)
@@ -28,12 +29,12 @@ def train(vae: Model, X, y, epochs=100, batch_size=32):
                 kld = kld_loss(None, mean_and_logvar)
 
                 # Total loss is equivalent to the negative ELBO in Equation 7
-                total_loss = tf.reduce_mean(kld + neg_avg_log_likelihood)
+                total_loss = n * tf.reduce_mean(kld + neg_avg_log_likelihood)
 
             grads = tape.gradient(total_loss, vae.trainable_variables)
             opt.apply_gradients(zip(grads, vae.trainable_variables))
             print('BCE: {}, KLD: {}'.format(neg_avg_log_likelihood.numpy(), kld.numpy()))
-        visualize_distributions(vae.encoder, X, y, epoch)
+        visualize_distributions(vae, X, y, epoch)
 
 
 if __name__ == '__main__':
@@ -42,4 +43,4 @@ if __name__ == '__main__':
     vae = VariationalAutoencoder((28, 28, 1), [32, 64], [64, 32], latent_dim=2, L=10, conv=True)
     vae.encoder.summary()
     vae.decoder.summary()
-    train(vae, x, y, batch_size=100)
+    train(vae, x, y, batch_size=200)

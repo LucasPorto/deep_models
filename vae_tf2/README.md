@@ -7,8 +7,6 @@
 
 * Visualization:
 
-![Training progress](content/vis.gif)
-
-Blue contour plot is a KDE of samples from a standard normal.
-
-Colored dots are samples from the posterior q(z|x).
+MNIST posterior samples (contour denotes a standard normal distribution)
+![Posterior samples on latent space](content/posterior.jpg)
+![Reconstructions](content/recon.jpg) |
