@@ -1,7 +1,9 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras.layers as layers
+
 from tensorflow.keras.models import Model
+from tensorflow.keras.initializers import RandomNormal
 
 # For all terminology, notation and references to equations please refer to
 # Kingma, Diederik P., and Max Welling. "Auto-encoding variational bayes. arXiv 2013."
@@ -9,8 +11,7 @@ from tensorflow.keras.models import Model
 
 def gaussian_encoder(input_shape, enc_spec, latent_dim=2, L=1, conv=False):
     """
-    This function returns a tf.keras model that defines a probabilistic model
-    for the multivariate Gaussian distribution q(z|x).
+    Probabilistic model for the multivariate Gaussian distribution q(z|x).
 
     The model returns the mean and log(variance) of q(z|x), which are used to
     compute the KL divergence term in Equation 7, as well as L samples from q(z|x),
@@ -30,9 +31,8 @@ def gaussian_encoder(input_shape, enc_spec, latent_dim=2, L=1, conv=False):
         conv_args = {
             'activation': 'relu',
             'kernel_size': 3,
-            'kernel_initializer': 'he_normal',
             'strides': 2,
-            'padding': 'same'
+            'padding': 'same',
         }
 
         conv = lambda filters: layers.Conv2D(filters, **conv_args)
@@ -41,7 +41,6 @@ def gaussian_encoder(input_shape, enc_spec, latent_dim=2, L=1, conv=False):
     else:
         dense_args = {
             'activation': 'relu',
-            'kernel_initializer': 'he_normal'
         }
 
         fc = lambda units: layers.Dense(units=units, **dense_args)
@@ -55,9 +54,7 @@ def gaussian_encoder(input_shape, enc_spec, latent_dim=2, L=1, conv=False):
 
     if conv:
         encoder = layers.Flatten()(encoder)
-        # encoder = layers.Dense(latent_dim*10, activation='relu',
-        #                        kernel_initializer='he_normal')(encoder)
-        # encoder = layers.Dropout(rate=0.5)(encoder)
+        encoder = layers.Dense(16, activation='relu')(encoder)
 
     mean_z = layers.Dense(units=latent_dim)(encoder)
     log_var_z = layers.Dense(units=latent_dim)(encoder)
@@ -79,10 +76,7 @@ def gaussian_encoder(input_shape, enc_spec, latent_dim=2, L=1, conv=False):
 
 def bernoulli_decoder(output_shape, dec_spec, latent_dim, deconv=False):
     """
-        This function returns a tf.keras model that defines a probabilistic model
-        for the multivariate Bernoulli distribution p(x|z).
-
-        The model returns p(x|z).
+        Probabilistic model for the multivariate Bernoulli distribution p(x|z).
 
         :param output_shape: dimensions of a single output variable.
         :param dec_spec: list specifying units of each fully-connected layer.
@@ -102,14 +96,12 @@ def bernoulli_decoder(output_shape, dec_spec, latent_dim, deconv=False):
         first_convmap_shape = np.array(output_shape[0:2]) // total_downsampling_factor
         first_convmap_shape = np.concatenate((first_convmap_shape, [dec_spec[0]]))
 
-        decoder = layers.Dense(np.prod(first_convmap_shape), activation='relu',
-                         kernel_initializer='he_normal')(z)
+        decoder = layers.Dense(np.prod(first_convmap_shape), activation='relu')(z)
         decoder = layers.Reshape(target_shape=first_convmap_shape)(decoder)
 
         convtr_args = {
             'activation': 'relu',
             'kernel_size': 3,
-            'kernel_initializer': 'he_normal',
             'strides': 2,
             'padding': 'same'
         }
@@ -120,7 +112,6 @@ def bernoulli_decoder(output_shape, dec_spec, latent_dim, deconv=False):
     else:
         dense_args = {
             'activation': 'relu',
-            'kernel_initializer': 'he_normal'
         }
         fc = lambda units: layers.Dense(units=units, **dense_args)
         dropout = lambda _: layers.Dropout(rate=0.5)
@@ -131,8 +122,7 @@ def bernoulli_decoder(output_shape, dec_spec, latent_dim, deconv=False):
         decoder = layer(decoder)
 
     if deconv:
-        x = layers.Conv2DTranspose(filters=1, kernel_size=1, activation='sigmoid',
-                                         kernel_initializer='he_normal')(decoder)
+        x = layers.Conv2DTranspose(filters=1, kernel_size=1, activation='sigmoid')(decoder)
 
     else:
         decoder = layers.Dense(units=np.prod(output_shape), activation='sigmoid')(decoder)

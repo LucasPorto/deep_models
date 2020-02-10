@@ -27,10 +27,15 @@ class KLDStandardNormal(tf.keras.losses.Loss):
     """
     KL Divergence between q(z|x) and the standard normal distribution.
     """
+    def __init__(self, beta=1.0):
+        super().__init__()
+        self.beta = beta
+
     def call(self, y_true, mean_and_log_var):
         mean, log_var = mean_and_log_var
         kld = 1.0 + log_var - tf.square(mean) - tf.exp(log_var)
-        return -tf.reduce_mean(kld, axis=1)
+        kld = -0.5 * tf.reduce_sum(kld, axis=-1)
+        return self.beta * kld
 
 
 
