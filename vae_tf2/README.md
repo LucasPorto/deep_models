@@ -9,4 +9,4 @@
 
 MNIST posterior samples (contour denotes a standard normal distribution)
 ![Posterior samples on latent space](content/posterior.jpg)
-![Reconstructions](content/recon.jpg) |
+![Reconstructions](content/recon.jpg)
